@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.*?>
+
+<VBox xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.example.BuddyLink.Controller.ChatController"
+      spacing="10" style="-fx-padding: 12;">
+    <!-- Header -->
+    <HBox spacing="10" alignment="CENTER_LEFT"
+          style="-fx-background-color: #dde8ff; -fx-background-radius: 10; -fx-padding: 8;">
+        <Label fx:id="peerName" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+        <Label fx:id="presenceLabel" style="-fx-font-size: 12px; -fx-text-fill: #5a6;"/>
+    </HBox>
+
+    <!-- Messages -->
+    <ListView fx:id="messagesList" VBox.vgrow="ALWAYS" focusTraversable="false"/>
+
+    <!-- Composer -->
+    <HBox spacing="8" alignment="CENTER">
+        <Button fx:id="attachBtn" text="Attach"/> <!-- (wire later for images) -->
+        <TextField fx:id="inputField" promptText="Type a message..." HBox.hgrow="ALWAYS"/>
+        <Button fx:id="sendBtn" text="Send"/>
+    </HBox>
+</VBox>

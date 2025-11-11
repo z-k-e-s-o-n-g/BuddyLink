@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="600.0" prefWidth="335.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.BuddyLink.Controller.OnboardingController">
+   <children>
+      <VBox layoutX="10.0" layoutY="10.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="580.0" prefWidth="315.0" spacing="7.0">
+         <children>
+            <CheckBox fx:id="maBox" mnemonicParsing="false" text="📱 Math (Press calculator and sleep)">
+               <font>
+                  <Font size="15.0" />
+               </font></CheckBox>
+            <CheckBox fx:id="elBox" mnemonicParsing="false" text="🕮 English (How to yap)">
+               <font>
+                  <Font size="15.0" />
+               </font></CheckBox>
+            <CheckBox fx:id="mtBox" mnemonicParsing="false" text="👲 Other languages (Pain)">
+               <font>
+                  <Font size="15.0" />
+               </font></CheckBox>
+            <CheckBox fx:id="pcBox" mnemonicParsing="false" text="🔫 Physics (Math with more equations)">
+               <font>
+                  <Font size="15.0" />
+               </font></CheckBox>
+            <CheckBox fx:id="cmBox" mnemonicParsing="false" text="💥 Chemistry (Less evil bio)">
+               <font>
+                  <Font size="15.0" />
+               </font></CheckBox>
+            <CheckBox fx:id="blBox" mnemonicParsing="false" text="😈 biology (EVILLLLLLLLLLLLLLLLL)">
+               <font>
+                  <Font size="15.0" />
+               </font></CheckBox>
+            <CheckBox fx:id="csBox" mnemonicParsing="false" text="💻 COMPUTER SCIENCE (BEST SUBJECT)">
+               <font>
+                  <Font size="15.0" />
+               </font></CheckBox>
+            <CheckBox fx:id="geBox" mnemonicParsing="false" text="🌏 Geography (English with weather)">
+               <font>
+                  <Font size="15.0" />
+               </font></CheckBox>
+            <CheckBox fx:id="hsBox" mnemonicParsing="false" text="💀 History (Boring bio)">
+               <font>
+                  <Font size="15.0" />
+               </font></CheckBox>
+            <CheckBox fx:id="liBox" mnemonicParsing="false" text="📚 English Literature (WHY?????)">
+               <font>
+                  <Font size="15.0" />
+               </font></CheckBox>
+            <CheckBox fx:id="ecBox" mnemonicParsing="false" text="💵 Economic$ (MONEY MONEY MONEY)">
+               <font>
+                  <Font size="15.0" />
+               </font></CheckBox>
+            <CheckBox fx:id="arBox" mnemonicParsing="false" text="🖌 Art (Modern)">
+               <font>
+                  <Font size="15.0" />
+               </font></CheckBox>
+            <CheckBox fx:id="muBox" mnemonicParsing="false" text="🎶 Music (Spotify with work)">
+               <font>
+                  <Font size="15.0" />
+               </font></CheckBox>
+            <CheckBox fx:id="asBox" mnemonicParsing="false" text="🔭 Astro (Doesn't sleep)">
+               <font>
+                  <Font size="15.0" />
+               </font></CheckBox>
+            <CheckBox fx:id="olBox" mnemonicParsing="false" text="🤓 Olympiads (Go away)">
+               <font>
+                  <Font size="15.0" />
+               </font></CheckBox>
+            <CheckBox fx:id="enBox" mnemonicParsing="false" text="🔧 Engineering (Weapon design)">
+               <font>
+                  <Font size="15.0" />
+               </font></CheckBox>
+            <VBox alignment="TOP_CENTER" prefHeight="200.0" prefWidth="100.0">
+               <children>
+                  <Button fx:id="confirmButton" mnemonicParsing="false" onAction="#confirm" text="Confirm">
+                     <font>
+                        <Font size="25.0" />
+                     </font>
+                  </Button>
+               </children>
+               <padding>
+                  <Insets top="10.0" />
+               </padding>
+            </VBox>
+         </children>
+      </VBox>
+   </children>
+</AnchorPane>

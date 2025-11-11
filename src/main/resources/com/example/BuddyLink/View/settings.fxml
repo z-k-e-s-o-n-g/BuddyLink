@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.image.Image?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.Circle?>
+
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.BuddyLink.Controller.SettingsController">
+   <children>
+      <VBox layoutX="10.0" layoutY="10.0" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" spacing="10.0">
+         <children>
+            <Button fx:id="changenameBtn" mnemonicParsing="false" onAction="#changename" text="Change username" />
+            <Button fx:id="logoutButton" mnemonicParsing="false" onAction="#logout" text="Log out" />
+            <Button fx:id="subjectsBtn" mnemonicParsing="false" onAction="#updateSubjects" text="Update subjects" />
+            <AnchorPane prefHeight="100.0" prefWidth="100.0">
+               <children>
+                  <Circle fill="#d1d1d1" layoutX="37.0" layoutY="38.0" radius="42.0" stroke="#d1d1d1" strokeType="INSIDE" strokeWidth="0.0" />
+                  <Circle fill="#e0e0e0" layoutX="37.0" layoutY="38.0" radius="34.0" stroke="#d1d1d1" strokeType="INSIDE" strokeWidth="0.0" />
+                  <ImageView fx:id="toggleSwitch" fitHeight="75.0" fitWidth="90.0" onMouseClicked="#lightdarkmode" pickOnBounds="true" preserveRatio="true">
+                     <image>
+                        <Image url="@../../../../images/img.png" />
+                     </image>
+                  </ImageView>
+               </children>
+            </AnchorPane>
+            <Button fx:id="closeButton" mnemonicParsing="false" onAction="#closeSettings" text="Close settings" />
+         </children>
+      </VBox>
+   </children>
+</AnchorPane>

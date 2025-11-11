@@ -1,0 +1,59 @@
+/* Role	Color	Hex Code	Description
+   Primary	Sky Blue	#3B82F6	Main color (buttons, headers)
+   Secondary	Soft Mint	#A7F3D0	Friendly accent for highlights
+   Accent	Coral Pink	#FCA5A5	For notifications, icons, or reaction badges
+   Background	Off-White	#F9FAFB	Gentle contrast to keep it light
+   Text	Dark Navy	#1E293B	For readability and balance
+*/
+
+AnchorPane {
+    -fx-background-color: #F2F5F7; /* Light gray background */
+    -fx-text-fill: #333333;            /* Dark gray text */
+    -fx-font-family: 'Arial';
+    -fx-background-image: url("images/lightbg.png");
+    -fx-background-repeat: no-repeat;
+}
+
+/* Button {
+    -fx-background-color: #5897FC;
+    -fx-background-radius: 8;
+    -fx-text-fill: #FFFDD0;
+}
+Button:hover {
+    -fx-background-color: #4078E0;
+} */
+
+Button {
+    -fx-background-color: rgba(59, 130, 246, 0.8); /* primary blue with slight transparency */
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-border-color: rgba(59, 130, 246, 1); /* solid primary blue border */
+    -fx-border-width: 1.5;
+    -fx-text-fill: white;                     /* text stays white for contrast */
+    -fx-font-size: 14px;
+    -fx-font-family: 'Arial';
+    -fx-padding: 5px 5px 5px 5px;                    /* more padding for light mode visibility */
+}
+
+Button:hover {
+    -fx-background-color: rgba(59, 130, 246, 1); /* fully solid blue on hover */
+}
+
+TextField {
+    -fx-background-color: #E0F2FE;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-border-color: #CBD5E1;
+    -fx-padding: 3px 5px 3px 5px
+}
+
+ListView {
+    -fx-background-color: #E4f5ED;
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+}
+
+Text {
+    -fx-font-size: 18px;
+    -fx-font-family: 'Trebuchet MS';
+}
