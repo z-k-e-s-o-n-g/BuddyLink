@@ -110,15 +110,32 @@ public class ChatController {
                     JsonObject o = JsonParser.parseString(text).getAsJsonObject();
                     String type = o.get("type").getAsString();
                     if ("chat".equals(type)) {
-                        ChatMessage m = new ChatMessage(
-                                o.get("userId").getAsInt(),
+                        int senderId = o.get("userId").getAsInt();
+                        if (senderId == Session.userId) {
+                            // It's your own message coming back — update the pending one
+                            Platform.runLater(() -> {
+                                // find the last pending message and mark it as delivered
+                                List<ChatMessage> items = messagesList.getItems();
+                                for (int i = items.size() - 1; i >= 0; i--) {
+                                    ChatMessage msg = items.get(i);
+                                    if (msg.pending && msg.text.equals(o.get("text").getAsString())) {
+                                        msg.pending = false;
+                                        messagesList.refresh();
+                                        return;
+                                    }
+                                }
+                            });
+                            return; // 👈 stop here
+                        }
+
+                        // Otherwise, it's from the peer
+                        ChatMessage m = new ChatMessage(senderId,
                                 o.has("text") && !o.get("text").isJsonNull() ? o.get("text").getAsString() : null,
                                 o.has("imageUrl") && !o.get("imageUrl").isJsonNull() ? o.get("imageUrl").getAsString() : null,
                                 o.get("ts").getAsLong(),
                                 false);
                         Platform.runLater(() -> {
                             messagesList.getItems().add(m);
-                            lastSeenTs = Math.max(lastSeenTs, m.ts);
                             scrollToBottom();
                         });
                     } else if ("presence".equals(type)) {

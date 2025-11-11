@@ -1,7 +1,9 @@
+// src/main/java/com/example/BuddyLink/Controller/RegisterController.java
 package com.example.BuddyLink.Controller;
 
 import com.example.BuddyLink.Navigation;
 import com.example.BuddyLink.Session;
+import com.example.BuddyLink.net.Api;      // ✅ use shared API base/client
 import com.google.gson.*;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
@@ -16,15 +18,14 @@ public class RegisterController {
     @FXML private TextField confirmPasswordText;
     @FXML private Hyperlink loginLink;
 
-    private static final String BASE = "http://localhost:7070";
-    private static final OkHttpClient http = new OkHttpClient();
+    private static final MediaType JSON = MediaType.parse("application/json");
     private static final Gson G = new Gson();
 
     @FXML
     public void register() {
-        String name  = nameText.getText().trim();
-        String email = emailText.getText().trim().toLowerCase();
-        String pw    = passwordText.getText();
+        String name    = nameText.getText().trim();
+        String email   = emailText.getText().trim().toLowerCase();
+        String pw      = passwordText.getText();
         String confirm = confirmPasswordText.getText();
 
         if (name.isEmpty() || email.isEmpty() || pw.isEmpty() || confirm.isEmpty()) {
@@ -36,21 +37,23 @@ public class RegisterController {
             return;
         }
 
+        // keep your lightweight hash; store as STRING to match server compare
+        String hashed = String.valueOf(hash(pw));
+
         JsonObject body = new JsonObject();
         body.addProperty("name", name);
         body.addProperty("email", email);
-        body.addProperty("password", hash(pw));
+        body.addProperty("password", hashed);
         body.addProperty("onboarded", false);
 
         Request req = new Request.Builder()
-                .url(BASE + "/auth/register")
-                .post(RequestBody.create(body.toString(), MediaType.parse("application/json")))
+                .url(Api.BASE + "/auth/register")   // ✅ no localhost hardcode
+                .post(RequestBody.create(body.toString(), JSON))
                 .build();
 
-        try (Response r = http.newCall(req).execute()) {
+        try (Response r = Api.http.newCall(req).execute()) {  // ✅ shared OkHttpClient
             String respBody = (r.body() != null) ? r.body().string() : "";
             if (!r.isSuccessful()) {
-                System.err.println("❌ Register failed: " + r.code() + " - " + respBody);
                 if (r.code() == 409) alert("Email already used.");
                 else alert("Register failed: " + r.code() + "\n" + respBody);
                 return;
@@ -62,7 +65,7 @@ public class RegisterController {
             Session.email  = res.get("email").getAsString();
             Session.token  = res.get("token").getAsString();
 
-            System.out.println("✅ Registered: " + Session.email);
+            System.out.println("✅ Registered: " + Session.email + " via " + Api.BASE);
             Navigation.goTo("onboarding.fxml", nameText);
 
         } catch (Exception e) {

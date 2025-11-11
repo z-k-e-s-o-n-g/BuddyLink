@@ -17,8 +17,9 @@ public class MainApplication extends Application {
         else {scene.getStylesheets().add(getClass().getResource("/light-theme.css").toExternalForm());}
         stage.setTitle("Log in");
         stage.setScene(scene);
-        stage.show();
         Image icon = new Image(getClass().getResourceAsStream("/images/books.png"));
+        stage.getIcons().add(icon);
+        stage.show();
     }
 
 

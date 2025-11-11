@@ -41,7 +41,7 @@ public class LoginController {
         String email = emailText.getText().trim().toLowerCase();
         String password = String.valueOf(hash(passwordText.getText()));
 
-
+ 
         System.out.println("🟡 [CLIENT] Attempting login: " + email + " / " + password);
 
         if (email.isEmpty() || password.isEmpty()) {
