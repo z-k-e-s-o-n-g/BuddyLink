@@ -14,14 +14,12 @@ public class Api {
 
     public static String getWsUrl(String pathAndQuery) {
         String scheme = BASE.startsWith("https") ? "wss" : "ws";
-        String host = BASE.replaceFirst("^https?://", ""); // e.g. localhost:7070 or api.domain.tld
+        String host = BASE.replaceFirst("^https?://", "");
         if (!pathAndQuery.startsWith("/")) pathAndQuery = "/" + pathAndQuery;
         return scheme + "://" + host + pathAndQuery;
     }
 
-    // ---------------------------
-    // Auth
-    // ---------------------------
+
     public static class LoginResp {
         public int userId;
         public String name;
@@ -29,7 +27,7 @@ public class Api {
         public String token;
     }
 
-    /** Login with email+password (matches ServerMain /auth/login) */
+
     public static LoginResp login(String email, String password) throws Exception {
         JsonObject jo = new JsonObject();
         jo.addProperty("email", email);
@@ -52,10 +50,10 @@ public class Api {
                         + (respBody != null ? (" - " + respBody) : ""));
             }
 
-            // ✅ Parse the already-read string, NOT r.body().string() again
+
             LoginResp res = gson.fromJson(respBody, LoginResp.class);
 
-            // Stash in Session
+
             Session.userId = res.userId;
             Session.name   = res.name;
             Session.email  = res.email;
@@ -66,9 +64,7 @@ public class Api {
     }
 
 
-    // ---------------------------
-    // Chat
-    // ---------------------------
+
     public static int createRoom(int peerId) throws Exception {
         JsonObject jo = new JsonObject();
         jo.addProperty("peerId", peerId);
@@ -122,9 +118,6 @@ public class Api {
         }
     }
 
-    // ---------------------------
-    // Profile
-    // ---------------------------
     public static void updateProfile(boolean[] subjects, java.util.List<String> tags, boolean onboarded) throws Exception {
         JsonObject body = new JsonObject();
 

@@ -14,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 public class ServerMain {
+
     static String publicBaseUrlOverride() {
         String v = System.getenv("PUBLIC_BASE_URL");
         return (v != null && !v.isBlank()) ? v.replaceAll("/+$", "") : null;
@@ -33,9 +34,7 @@ public class ServerMain {
     static final Map<Integer, Room> rooms = new ConcurrentHashMap<>();
     static final Map<Integer, CopyOnWriteArraySet<WsContext>> sockets = new ConcurrentHashMap<>();
     static final Map<String, Integer> tokenToUser = new ConcurrentHashMap<>();
-
     static final Map<String, Integer> pairToRoom = new ConcurrentHashMap<>();
-    // --- Presence tracking ---
     static final Map<Integer, Long> lastSeen = new ConcurrentHashMap<>();
 
     static void touch(int uid) {
@@ -47,8 +46,6 @@ public class ServerMain {
         return t != null && System.currentTimeMillis() - t < 30_000;
     }
 
-
-    // stable key for a user pair (order-independent)
     static String pairKey(int a, int b) {
         return (a < b) ? (a + ":" + b) : (b + ":" + a);
     }
@@ -82,8 +79,6 @@ public class ServerMain {
         catch (Exception e) { e.printStackTrace(); throw new RuntimeException(e); }
 
         Javalin app = Javalin.create(c -> {
-
-            // static files served
             c.jsonMapper(new JsonMapper() {
                 public String toJsonString(Object obj) { return GSON.toJson(obj); }
                 public String toJsonString(Object obj, Type type) { return GSON.toJson(obj, type); }
@@ -119,7 +114,6 @@ public class ServerMain {
             java.nio.file.Path base = java.nio.file.Paths.get("uploads");
             java.nio.file.Path p = base.resolve(rest).normalize();
 
-            // prevent path-traversal outside uploads/
             if (!p.startsWith(base)) {
                 ctx.status(403).result("Forbidden");
                 return;
@@ -180,7 +174,6 @@ public class ServerMain {
             String token = UUID.randomUUID().toString();
             tokenToUser.put(token, id);
 
-            // mark user active on successful login
             try (ResultSet rs = findUserById(id)) {
                 if (!rs.next()) { ctx.status(500).result("Created user not found"); return; }
                 var out = new HashMap<>(rowToUserMap(rs));
@@ -253,7 +246,8 @@ public class ServerMain {
         app.put("/me/bio", ctx -> {
             var me = auth(ctx.header("Authorization"));
             JsonObject j = JsonParser.parseString(ctx.body()).getAsJsonObject();
-            String bio = j.has("bio") && !j.get("bio").isJsonNull() ? j.get("bio").getAsString() : "";
+            String bio = (j.has("bio") && !j.get("bio").isJsonNull()) ? j.get("bio").getAsString() : "";
+
             try (PreparedStatement ps = db.prepareStatement(
                     "UPDATE users SET bio=?, updated_at=? WHERE id=?")) {
                 ps.setString(1, bio);
@@ -263,13 +257,11 @@ public class ServerMain {
             }
             ctx.status(204);
         });
-        // --- upload test ---
         app.get("/rooms/{rid}/files/ping", ctx -> {
             int rid = Integer.parseInt(ctx.pathParam("rid"));
             ctx.result("files route OK for room " + rid);
         });
 
-// --- main upload route ---
         app.post("/rooms/{rid}/files", ctx -> {
             System.out.println("➡️  POST /rooms/" + ctx.pathParam("rid") + "/files (hit)");
             var me = auth(ctx.header("Authorization"));
@@ -311,7 +303,6 @@ public class ServerMain {
             ctx.json(java.util.Map.of("fileUrl", publicPath, "mime", mime, "ts", m.ts));
         });
 
-        // --- trailing-slash twin ---
         app.post("/rooms/{rid}/files/", ctx -> {
             ctx.status(308).header("Location",
                     "/rooms/" + ctx.pathParam("rid") + "/files").result("Use /rooms/{rid}/files");
@@ -521,6 +512,7 @@ public class ServerMain {
             rooms.clear();
             sockets.clear();
             roomSeq = 1;
+            clearUploads();
             ctx.status(204);
         });
 
@@ -533,7 +525,6 @@ public class ServerMain {
                     "status", active ? "online" : "inactive"
             ));
         });
-        // ===== PRESENCE =====
 
         app.post("/presence/ping", ctx -> {
             var me = auth(ctx.header("Authorization"));
@@ -565,6 +556,20 @@ public class ServerMain {
             createSchema();
             ensureBioColumn();
         }
+    }
+
+    static void clearUploads() {
+        java.nio.file.Path dir = java.nio.file.Paths.get("uploads");
+        if (!java.nio.file.Files.exists(dir)) return;
+        try (var files = java.nio.file.Files.list(dir)) {
+            files.forEach(path -> {
+                try { java.nio.file.Files.deleteIfExists(path); }
+                catch (Exception e) { System.err.println("Failed to delete " + path + ": " + e); }
+            });
+        } catch (Exception e) {
+            System.err.println("Failed to list uploads folder: " + e);
+        }
+        System.out.println("✅ Uploads cleared.");
     }
 
     static void createSchema() throws SQLException {

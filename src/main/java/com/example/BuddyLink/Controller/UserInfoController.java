@@ -18,21 +18,14 @@ public class UserInfoController {
     @FXML private ListView<String> interestsList;
     @FXML private TextArea aboutArea;
     @FXML private Button closeBtn;
-
-    // if set, we load this user's profile; otherwise we fall back to /me
     private Integer targetUserId = null;
-
-    /** Called by ChatController after loading the FXML */
     public void initForUserId(int userId) {
         this.targetUserId = userId;
         loadUserInfo();
     }
 
     public void initialize() {
-        // keep your back button behavior
         closeBtn.setOnAction(e -> ((Stage) closeBtn.getScene().getWindow()).close());
-
-        // if opened from somewhere that didn’t call initForUserId, show /me to avoid a blank popup
         if (targetUserId == null) {
             loadUserInfo();
         }
@@ -61,8 +54,8 @@ public class UserInfoController {
 
                     List<String> interests = new ArrayList<>();
                     String[] subjectNames = {
-                            "Math", "English", "Mother Tongue", "Physics", "Chemistry", "Biology", "Computer Science",
-                            "Geography", "History", "Literature", "Economics", "Art", "Music", "Aesthetics", "Others", "Environmental"
+                            "Math", "English", "Other languages", "Physics", "Chemistry", "Biology", "Computer Science",
+                            "Geography", "History", "Literature", "Economics", "Art", "Music", "Astronomy", "Olympiads", "Engineering"
                     };
 
                     if (subjects != null) {

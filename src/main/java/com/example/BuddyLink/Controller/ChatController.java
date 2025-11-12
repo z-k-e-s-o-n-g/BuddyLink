@@ -25,7 +25,7 @@ public class ChatController {
     @FXML private TextField inputField;
     @FXML private Button sendBtn, attachBtn, bioBtn;
 
-    // Scheduler for presence polling + heartbeat
+
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private ScheduledFuture<?> presenceTask;
     private ScheduledFuture<?> heartbeatTask;
@@ -66,14 +66,14 @@ public class ChatController {
                     "Cannot find " + FXML_PATH + " on classpath (put it in src/main/resources)"
             );
 
-            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(url); // location set
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(url);
             javafx.scene.Parent root = loader.load();
 
-            // hand the selected user's id to the popup
+
             UserInfoController ctrl = loader.getController();
             ctrl.initForUserId(peer.id);
 
-            // show as modal popup
+
             javafx.stage.Stage owner = (javafx.stage.Stage) bioBtn.getScene().getWindow();
             javafx.stage.Stage dialog = new javafx.stage.Stage();
             dialog.initOwner(owner);
@@ -107,8 +107,8 @@ public class ChatController {
 
         openRoomAndConnect();
 
-        startPresencePolling(); // poll peer
-        startHeartbeat();       // ping yourself
+        startPresencePolling();
+        startHeartbeat();
     }
 
     private void openRoomAndConnect() {
@@ -155,7 +155,8 @@ public class ChatController {
                     if (o.has("mime") && !o.get("mime").isJsonNull()) m.mime = o.get("mime").getAsString();
                     list.add(m);
                     lastSeenTs = Math.max(lastSeenTs, m.ts);
-                }
+
+            }
                 Platform.runLater(() -> {
                     messagesList.getItems().setAll(list);
                     scrollToBottom();
@@ -178,9 +179,11 @@ public class ChatController {
                     Platform.runLater(() -> presenceLabel.setText("Connected"));
                 }
 
-                @Override public void onMessage(WebSocket webSocket, String text) {
+                @Override
+                public void onMessage(WebSocket webSocket, String text) {
                     JsonObject o = JsonParser.parseString(text).getAsJsonObject();
                     String type = o.get("type").getAsString();
+
                     if ("chat".equals(type)) {
                         int senderId = o.get("userId").getAsInt();
                         if (senderId == Session.userId) {
@@ -210,6 +213,7 @@ public class ChatController {
                             messagesList.getItems().add(m);
                             scrollToBottom();
                         });
+
                     } else if ("presence".equals(type)) {
                         String ev = o.get("event").getAsString();
                         int uid = o.has("userId") ? o.get("userId").getAsInt() : -1;
@@ -217,6 +221,16 @@ public class ChatController {
                             Platform.runLater(() ->
                                     presenceLabel.setText(ev.equals("join") ? "Online" : "Away"));
                         }
+
+                    } else if ("reset".equals(type)) {
+                        Platform.runLater(() -> {
+                            messagesList.getItems().clear();
+                            messagesList.setStyle("");
+                            presenceLabel.setText("Away");
+                            lastSeenTs = 0;
+                            roomId = -1;
+                            inputField.clear();
+                        });
                     }
                 }
 
@@ -232,7 +246,6 @@ public class ChatController {
         }
     }
 
-    // Poll peer presence
     private void startPresencePolling() {
         stopPresencePolling();
         presenceTask = scheduler.scheduleAtFixedRate(() -> {
@@ -256,8 +269,6 @@ public class ChatController {
             presenceTask = null;
         }
     }
-
-    // Heartbeat
     private void startHeartbeat() {
         stopHeartbeat();
         heartbeatTask = scheduler.scheduleAtFixedRate(() -> {
@@ -278,21 +289,16 @@ public class ChatController {
             heartbeatTask = null;
         }
     }
-
-    // ===== Messaging =====
     private void sendMessage() {
         String text = inputField.getText() == null ? "" : inputField.getText().trim();
         if (text.isEmpty()) return;
         inputField.clear();
-
         ChatMessage pending = new ChatMessage(Session.userId, text, null, System.currentTimeMillis(), true);
         messagesList.getItems().add(pending);
         scrollToBottom();
-
         JsonObject wsMsg = new JsonObject();
         wsMsg.addProperty("type", "chat");
         wsMsg.addProperty("text", text);
-
         boolean sent = false;
         try {
             if (ws != null) sent = ws.send(wsMsg.toString());
@@ -308,7 +314,6 @@ public class ChatController {
         } catch (Exception ignored) {}
     }
 
-    // ===== Attach & Upload =====
     private void chooseAndUpload() {
         var fc = new javafx.stage.FileChooser();
         fc.setTitle("Attach");
@@ -320,13 +325,11 @@ public class ChatController {
         );
         var file = fc.showOpenDialog(attachBtn.getScene().getWindow());
         if (file == null) return;
-
         ChatMessage pending = new ChatMessage(Session.userId, null, file.toURI().toString(),
                 System.currentTimeMillis(), true);
         pending.mime = guessMime(file.getName());
         messagesList.getItems().add(pending);
         scrollToBottom();
-
         new Thread(() -> {
             try {
                 RequestBody rb = new MultipartBody.Builder()
@@ -373,7 +376,6 @@ public class ChatController {
             }
         }).start();
     }
-
     private static String guessMime(String name) {
         String n = name.toLowerCase();
         if (n.endsWith(".png")) return "image/png";
@@ -396,7 +398,14 @@ public class ChatController {
         if (last >= 0) messagesList.scrollTo(last);
     }
 
-    // ===== Model =====
+    public void resetChat() {
+        messagesList.getItems().clear();
+        messagesList.setStyle("");
+        presenceLabel.setText("Away");
+        lastSeenTs = 0;
+        roomId = -1;
+        inputField.clear();
+    }
     public static class ChatMessage {
         public final int userId;
         public String text;

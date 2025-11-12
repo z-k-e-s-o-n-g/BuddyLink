@@ -37,7 +37,6 @@ public class MainController {
     @FXML private ChoiceBox<String> filterchoice;
 
     private static final OkHttpClient HTTP = new OkHttpClient();
-    @SuppressWarnings("unused")
     private static final MediaType JSON = MediaType.parse("application/json");
 
     private final ObservableList<UserLite> users = FXCollections.observableArrayList();
@@ -50,11 +49,9 @@ public class MainController {
         double imageRatio = bg.getImage().getWidth() / bg.getImage().getHeight();
 
         if (containerRatio > imageRatio) {
-            // container wider → fit by height, crop sides
             bg.setFitHeight(chatContainer.getHeight());
             bg.setFitWidth(chatContainer.getHeight() * imageRatio);
         } else {
-            // container taller → fit by width, crop top/bottom
             bg.setFitWidth(chatContainer.getWidth());
             bg.setFitHeight(chatContainer.getWidth() / imageRatio);
         }
@@ -68,8 +65,6 @@ public class MainController {
         if (GlobalContainer.backgroundImageUrl != null) {
             try {
                 Image img = new Image(GlobalContainer.backgroundImageUrl, 0, 0, true, true);
-
-                // ✅ "cover" = true, "contain" = false  (cropped wallpaper style)
                 BackgroundSize bSize = new BackgroundSize(
                         100, 100, true, true, false, true
                 );
@@ -86,20 +81,15 @@ public class MainController {
                 ex.printStackTrace();
             }
         }
-        // filter choice values
         filterchoice.setItems(FXCollections.observableArrayList("A-Z", "Recent", "Recommended"));
         filterchoice.getSelectionModel().select("Recent");
         filterchoice.setOnAction(e -> applySort());
-
-        // list cell
         chatList.setCellFactory(listView -> new ListCell<>() {
             @Override protected void updateItem(UserLite u, boolean empty) {
                 super.updateItem(u, empty);
                 setText(empty || u == null ? null : u.name);
             }
         });
-
-        // filtered wrapper + search
         filtered = new FilteredList<>(users, u -> true);
         chatList.setItems(filtered);
 
@@ -107,13 +97,9 @@ public class MainController {
             String q = nv == null ? "" : nv.toLowerCase().trim();
             filtered.setPredicate(u -> u != null && u.name != null && u.name.toLowerCase().contains(q));
         });
-
-        // open chat on select
         chatList.getSelectionModel().selectedItemProperty().addListener((obs, oldV, newV) -> {
             if (newV != null) openChat(newV);
         });
-
-        // load users
         new Thread(this::loadUsers).start();
     }
 
@@ -122,9 +108,7 @@ public class MainController {
         if ("A-Z".equals(mode)) {
             FXCollections.sort(users, Comparator.comparing(u -> u.name == null ? "" : u.name, String.CASE_INSENSITIVE_ORDER));
         } else if ("Recent".equals(mode)) {
-            // Keeps server order
         } else if ("Recommended".equals(mode)) {
-            // Placeholder
         }
     }
 
@@ -144,7 +128,7 @@ public class MainController {
             for (JsonElement el : arr) {
                 JsonObject o = el.getAsJsonObject();
                 int id = o.get("id").getAsInt();
-                if (id == Session.userId) continue; // skip self
+                if (id == Session.userId) continue;
                 String name = (o.has("name") && !o.get("name").isJsonNull())
                         ? o.get("name").getAsString()
                         : ("User " + id);
@@ -152,7 +136,7 @@ public class MainController {
             }
             Platform.runLater(() -> {
                 users.setAll(loaded);
-                applySort(); // apply current sort mode after load
+                applySort();
             });
         } catch (Exception e) {
             showError("Error loading users: " + e.getMessage());
@@ -164,8 +148,6 @@ public class MainController {
             FXMLLoader fx = new FXMLLoader(Navigation.class.getResource("View/ChatView.fxml"));
             Parent chatUI = fx.load();
             ChatController ctrl = fx.getController();
-
-            // Pass a ChatController.UserLite
             ctrl.init(new UserLite(peer.id, peer.name));
 
             chatContainer.getChildren().setAll(chatUI);
@@ -191,8 +173,6 @@ public class MainController {
     private void showError(String msg) {
         Platform.runLater(() -> new Alert(Alert.AlertType.ERROR, msg).showAndWait());
     }
-
-    // Lightweight model for the list
     public static class UserLite {
         public final int id;
         public final String name;

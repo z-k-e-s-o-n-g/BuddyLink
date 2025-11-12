@@ -38,7 +38,6 @@ public class TimeInputController {
                 return;
             }
 
-            // Pass data using GlobalContainer
             GlobalContainer.studyDuration = studyDuration;
             GlobalContainer.breakDuration = breakDuration;
             GlobalContainer.totalCycles = cycles;

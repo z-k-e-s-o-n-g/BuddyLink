@@ -1,9 +1,9 @@
-// src/main/java/com/example/BuddyLink/Controller/RegisterController.java
+
 package com.example.BuddyLink.Controller;
 
 import com.example.BuddyLink.Navigation;
 import com.example.BuddyLink.Session;
-import com.example.BuddyLink.net.Api;      // ✅ use shared API base/client
+import com.example.BuddyLink.net.Api;
 import com.google.gson.*;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
@@ -37,7 +37,6 @@ public class RegisterController {
             return;
         }
 
-        // keep your lightweight hash; store as STRING to match server compare
         String hashed = String.valueOf(hash(pw));
 
         JsonObject body = new JsonObject();
@@ -47,11 +46,11 @@ public class RegisterController {
         body.addProperty("onboarded", false);
 
         Request req = new Request.Builder()
-                .url(Api.BASE + "/auth/register")   // ✅ no localhost hardcode
+                .url(Api.BASE + "/auth/register")
                 .post(RequestBody.create(body.toString(), JSON))
                 .build();
 
-        try (Response r = Api.http.newCall(req).execute()) {  // ✅ shared OkHttpClient
+        try (Response r = Api.http.newCall(req).execute()) {
             String respBody = (r.body() != null) ? r.body().string() : "";
             if (!r.isSuccessful()) {
                 if (r.code() == 409) alert("Email already used.");

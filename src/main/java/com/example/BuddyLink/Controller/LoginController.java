@@ -17,15 +17,17 @@ public class LoginController {
 
     @FXML
     public void admin() {
-        // Create a password prompt dialog
         TextInputDialog dialog = new TextInputDialog();
         dialog.setTitle("Admin Access");
         dialog.setHeaderText("Enter Admin Password");
-        dialog.setContentText("Password:");
 
-        // Show dialog and wait for user input
+        PasswordField passwordField = new PasswordField();
+        passwordField.setPromptText("Password");
+        dialog.getEditor().setVisible(false);
+        dialog.getDialogPane().setContent(passwordField);
         dialog.showAndWait().ifPresent(input -> {
-            long inputHash = hash(input);
+            String password = passwordField.getText();
+            long inputHash = hash(password);
             long correctHash = hash("admin123");
 
             if (inputHash == correctHash) {
@@ -35,6 +37,7 @@ public class LoginController {
             }
         });
     }
+
 
     @FXML
     public void login() {

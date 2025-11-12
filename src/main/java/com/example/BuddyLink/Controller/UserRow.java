@@ -12,13 +12,9 @@ public class UserRow {
         this.email = email;
         this.onboarded = onboarded;
     }
-
-    // getters for TableView
     public int getId() { return id; }
     public String getName() { return name; }
     public String getEmail() { return email; }
     public boolean isOnboarded() { return onboarded; }
-
-    // PropertyValueFactory looks for getOnboarded() or isOnboarded()
     public Boolean getOnboarded() { return onboarded; }
 }

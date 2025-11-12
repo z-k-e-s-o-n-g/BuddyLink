@@ -10,8 +10,8 @@ import javafx.scene.control.TextArea;
 
 public class BioController {
 
-    @FXML private TextArea textArea;   // fx:id from FXML
-    @FXML private Button button;       // fx:id from FXML
+    @FXML private TextArea textArea;
+    @FXML private Button button;
 
     @FXML
     public void submit() {
@@ -30,11 +30,11 @@ public class BioController {
 
         new Thread(() -> {
             try {
-                // Api.updateBio must exist, uses Session.token internally.
+
                 Api.updateBio(bio);
 
                 Platform.runLater(() -> {
-                    // Navigate back to main UI after saving
+
                     Navigation.goTo("main.fxml", button);
                 });
             } catch (Exception e) {

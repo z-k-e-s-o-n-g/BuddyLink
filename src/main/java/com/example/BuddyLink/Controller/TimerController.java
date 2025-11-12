@@ -27,7 +27,7 @@ public class TimerController {
 
     @FXML
     public void initialize() {
-        // Load from global container
+
         studyDuration = GlobalContainer.studyDuration;
         breakDuration = GlobalContainer.breakDuration;
         totalCycles = GlobalContainer.totalCycles;
@@ -45,7 +45,7 @@ public class TimerController {
         currentCycle++;
         timeLeft = studyDuration;
         onStudy = true;
-        statusLabel.setText("Studying"); // update status
+        statusLabel.setText("Studying");
         cycleLabel.setText("Cycle " + currentCycle + " / " + totalCycles);
         startTimer();
     }
@@ -53,7 +53,7 @@ public class TimerController {
     private void startBreak() {
         timeLeft = breakDuration;
         onStudy = false;
-        statusLabel.setText("Break"); // update status
+        statusLabel.setText("Break");
         startTimer();
     }
 
@@ -70,7 +70,7 @@ public class TimerController {
                         startStudy();
                     } else {
                         timerLabel.setText("Done!");
-                        statusLabel.setText(""); // clear status
+                        statusLabel.setText("");
                     }
                 }
             } else {

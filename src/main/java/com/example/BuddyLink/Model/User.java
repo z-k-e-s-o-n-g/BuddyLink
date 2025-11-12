@@ -7,21 +7,15 @@ public class User {
     private int id;
     private String name;
     private String email;
-    private long passwordHash;         // store a hash, not the raw password
-    private boolean[] subjects;       // e.g. ["math","chem"]
+    private long passwordHash;
+    private boolean[] subjects;
     private List<String> tags;
-    private boolean onboarded;           // finished onboarding?
+    private boolean onboarded;
     private long createdAt;
-
-    public static void resetTotalUsers() {
-        User.totalUsers = 0;
-    }
-
     private long updatedAt;
     private static int totalUsers = 0;
     private String bio;
 
-    // --- constructors ---
     public User(String name, String email, long passwordHash,
                 boolean[] subjects, List<String> tags, boolean onboarded, String bio) {
         this.id = totalUsers++;
@@ -37,12 +31,10 @@ public class User {
         this.bio = bio;
     }
 
-    // minimal convenience ctor (before onboarding)
     public User(String email, long passwordHash) {
         this("", email, passwordHash, new boolean[16], new ArrayList<>(), false, "");
     }
 
-    // --- getters/setters ---
     public int getId() { return id; }
     public String getName() { return name; }
     public String getEmail() { return email; }
@@ -61,6 +53,10 @@ public class User {
     public void setTags(List<String> tags) { this.tags = new ArrayList<>(tags); touch(); }
     public void setOnboarded(boolean onboarded) { this.onboarded = onboarded; touch(); }
     public void setBio(String bio) { this.bio = bio; touch(); }
+
+    public static void resetTotalUsers() {
+        User.totalUsers = 0;
+    }
 
     private void touch() { this.updatedAt = System.currentTimeMillis(); }
 }

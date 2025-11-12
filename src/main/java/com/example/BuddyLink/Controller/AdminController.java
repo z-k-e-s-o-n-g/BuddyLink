@@ -15,7 +15,7 @@ import java.util.List;
 
 public class AdminController {
 
-    // --- UI (Scene Builder: wire fx:id) ---
+    // ui
     @FXML private TableView<UserRow> usersTable;
     @FXML private TableColumn<UserRow, Integer> colId;
     @FXML private TableColumn<UserRow, String>  colName;
@@ -26,9 +26,9 @@ public class AdminController {
     @FXML private Button resetBtn;
     @FXML private Button closeBtn;
 
-    // --- HTTP/JSON ---
-    private static final String BASE = "http://localhost:7070"; // adjust if needed
-    private static final String ADMIN_TOKEN = "dev-admin";      // must match ServerMain.ADMIN_TOKEN
+    // http
+    private static final String BASE = "http://localhost:7070";
+    private static final String ADMIN_TOKEN = "dev-admin";
     private static final OkHttpClient http = new OkHttpClient();
     private static final Gson G = new Gson();
 
@@ -49,7 +49,7 @@ public class AdminController {
         loadUsersAsync();
     }
 
-    // --- Button actions ---
+    //button
     @FXML
     public void refresh() { loadUsersAsync(); }
 
@@ -77,18 +77,14 @@ public class AdminController {
         }).start();
     }
 
-    /**
-     * Reset EVERYTHING: first clear all conversations (rooms/messages),
-     * then clear all users (existing behavior).
-     */
     @FXML
     public void resetAll() {
         if (!confirm("This will delete ALL users and ALL conversation history. Continue?")) return;
-
+        User.resetTotalUsers();
         setButtonsDisabled(true);
 
         new Thread(() -> {
-            int chatEndpointsHit = clearAllChatsInternal(); // try multiple endpoints, count successes
+            int chatEndpointsHit = clearAllChatsInternal();
 
             // Now call your existing users reset endpoint
             boolean usersCleared = postNoBody("/admin/reset");
@@ -109,13 +105,8 @@ public class AdminController {
                 setButtonsDisabled(false);
             }
         }).start();
-        User.resetTotalUsers();
     }
 
-    /**
-     * Optional: if you later add a separate "Clear Chats" button, wire it to this.
-     * Safe to leave unused.
-     */
     @FXML
     public void clearAllChatsOnly() {
         if (!confirm("This will delete ALL conversation history. Continue?")) return;
@@ -132,20 +123,15 @@ public class AdminController {
         }).start();
     }
 
-    // --- Internals ---
 
-    /**
-     * Try a few likely admin endpoints for clearing chats.
-     * Returns how many endpoints returned 2xx.
-     */
     private int clearAllChatsInternal() {
         int ok = 0;
-        // Add/adjust to match your server. We'll try all; non-existent will just 404.
         String[] endpoints = new String[] {
                 "/admin/chats/reset",
                 "/admin/messages/reset",
                 "/admin/rooms/reset",
-                "/admin/conversations/reset"
+                "/admin/conversations/reset",
+                "/admin/files/reset"
         };
         for (String ep : endpoints) {
             if (postNoBody(ep)) ok++;
@@ -153,7 +139,6 @@ public class AdminController {
         return ok;
     }
 
-    /** POST with no body, admin header; returns true if 2xx. */
     private boolean postNoBody(String path) {
         Request req = new Request.Builder()
                 .url(BASE + path)
@@ -203,6 +188,19 @@ public class AdminController {
             }
         }).start();
     }
+    static void clearUploads() {
+        java.nio.file.Path dir = java.nio.file.Paths.get("uploads");
+        if (!java.nio.file.Files.exists(dir)) return;
+        try (var files = java.nio.file.Files.list(dir)) {
+            files.forEach(path -> {
+                try { java.nio.file.Files.deleteIfExists(path); }
+                catch (Exception e) { System.err.println("Failed to delete " + path + ": " + e); }
+            });
+        } catch (Exception e) {
+            System.err.println("Failed to list uploads folder: " + e);
+        }
+        System.out.println("Uploads cleared.");
+    }
 
     private void setButtonsDisabled(boolean b) {
         Platform.runLater(() -> {
@@ -248,7 +246,6 @@ public class AdminController {
         public String getName() { return name; }
         public String getEmail() { return email; }
         public boolean isOnboarded() { return onboarded; }
-        // If your column uses Boolean instead of boolean, add this:
         public Boolean getOnboarded() { return onboarded; }
     }
 }

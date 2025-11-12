@@ -19,7 +19,7 @@ import okhttp3.Response;
 import java.util.Optional;
 
 import static com.example.BuddyLink.GlobalContainer.darkMode;
-import static com.example.BuddyLink.net.Api.BASE;   // keep if you like; otherwise use Api.BASE
+import static com.example.BuddyLink.net.Api.BASE;
 
 public class SettingsController {
     @FXML private Button closeButton;
@@ -27,8 +27,6 @@ public class SettingsController {
     @FXML private Button subjectsBtn;
     @FXML private ImageView toggleSwitch;
     @FXML private Button changebgBtn;
-
-    // Local HTTP client for this controller
     private static final OkHttpClient HTTP = new OkHttpClient();
     private static final MediaType JSON = MediaType.parse("application/json");
 
@@ -108,7 +106,7 @@ public class SettingsController {
                     }
                 }
 
-                Session.name = name; // Update locally after success
+                Session.name = name;
                 alert("Username updated successfully!");
             } catch (Exception e) {
                 e.printStackTrace();
