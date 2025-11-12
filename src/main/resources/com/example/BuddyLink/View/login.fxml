@@ -31,7 +31,6 @@
                </font>
             </TextField>
 
-            <!-- ✅ REAL PasswordField -->
             <PasswordField fx:id="passwordText" promptText="Password">
                <font>
                   <Font size="24.0"/>

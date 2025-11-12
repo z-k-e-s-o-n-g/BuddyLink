@@ -41,8 +41,8 @@ public class LoginController {
         String email = emailText.getText().trim().toLowerCase();
         String password = String.valueOf(hash(passwordText.getText()));
 
- 
-        System.out.println("🟡 [CLIENT] Attempting login: " + email + " / " + password);
+
+        System.out.println("🟡 [CLIENT] Attempting login: " + email);
 
         if (email.isEmpty() || password.isEmpty()) {
             alert("Please enter email and password.");
@@ -50,8 +50,6 @@ public class LoginController {
         }
 
         try {
-            System.out.println("1: " + password);
-
             // Call the API to authenticate remotely
             com.example.BuddyLink.net.Api.LoginResp res =
                     com.example.BuddyLink.net.Api.login(email, password);

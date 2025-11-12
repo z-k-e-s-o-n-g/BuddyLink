@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+
+<AnchorPane xmlns:fx="http://javafx.com/fxml"
+            fx:controller="com.example.BuddyLink.Controller.UserInfoController"
+            prefWidth="420" prefHeight="400" style="-fx-background-color: #f8f9fb;">
+    <children>
+        <Label text="User Areas of Interest" layoutX="20" layoutY="20"
+               style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+
+        <ListView fx:id="interestsList" layoutX="20" layoutY="50" prefWidth="380" prefHeight="180"
+                  style="-fx-background-radius: 8;"/>
+
+        <Label text="About" layoutX="20" layoutY="240"
+               style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+
+        <TextArea fx:id="aboutArea" layoutX="20" layoutY="270" prefWidth="380" prefHeight="80"
+                  editable="false" wrapText="true"
+                  style="-fx-background-radius: 8; -fx-control-inner-background: #ffffff;"/>
+
+        <Button fx:id="closeBtn" text="Close" layoutX="320" layoutY="360" prefWidth="80"
+                style="-fx-background-color: #4a90e2; -fx-text-fill: white; -fx-background-radius: 6;"/>
+    </children>
+</AnchorPane>

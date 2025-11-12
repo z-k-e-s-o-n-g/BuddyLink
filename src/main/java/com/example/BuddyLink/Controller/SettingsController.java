@@ -1,5 +1,6 @@
 package com.example.BuddyLink.Controller;
 
+import com.example.BuddyLink.GlobalContainer;
 import com.example.BuddyLink.Navigation;
 import com.example.BuddyLink.Session;
 import com.google.gson.JsonObject;
@@ -25,10 +26,29 @@ public class SettingsController {
     @FXML private Button logoutButton;
     @FXML private Button subjectsBtn;
     @FXML private ImageView toggleSwitch;
+    @FXML private Button changebgBtn;
 
     // Local HTTP client for this controller
     private static final OkHttpClient HTTP = new OkHttpClient();
     private static final MediaType JSON = MediaType.parse("application/json");
+
+    @FXML
+    public void changebg() {
+        var chooser = new javafx.stage.FileChooser();
+        chooser.setTitle("Choose Background Image");
+        chooser.getExtensionFilters().addAll(
+                new javafx.stage.FileChooser.ExtensionFilter(
+                        "Image Files", "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp"
+                )
+        );
+
+        var file = chooser.showOpenDialog(changebgBtn.getScene().getWindow());
+        if (file != null) {
+            String imageUrl = file.toURI().toString();
+            GlobalContainer.backgroundImageUrl = imageUrl;
+            alert("Background image updated!");
+        }
+    }
 
     @FXML
     public void closeSettings() {

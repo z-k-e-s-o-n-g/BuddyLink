@@ -107,6 +107,7 @@ public class ServerMain {
         // ---------- LOGIN (fixed version) ----------
         app.post("/auth/login", ctx -> {
             JsonObject j = JsonParser.parseString(ctx.body()).getAsJsonObject();
+
             String email = optString(j, "email");
             String pw    = optString(j, "password");
 
@@ -131,6 +132,7 @@ public class ServerMain {
                 int id = rs.getInt("id");
                 String token = UUID.randomUUID().toString();
                 tokenToUser.put(token, id);
+                touch(id);
 
                 var out = new HashMap<>(rowToUserMap(rs));
                 out.put("token", token);

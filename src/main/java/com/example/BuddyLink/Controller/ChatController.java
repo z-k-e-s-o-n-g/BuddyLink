@@ -1,5 +1,7 @@
 package com.example.BuddyLink.Controller;
 
+import com.example.BuddyLink.GlobalContainer;
+import com.example.BuddyLink.Navigation;
 import com.example.BuddyLink.Session;
 import com.example.BuddyLink.Controller.MainController.UserLite;
 import com.google.gson.*;
@@ -20,7 +22,7 @@ public class ChatController {
     @FXML private Label peerName, presenceLabel;
     @FXML private ListView<ChatMessage> messagesList;
     @FXML private TextField inputField;
-    @FXML private Button sendBtn, attachBtn;
+    @FXML private Button sendBtn, attachBtn, bioBtn;
 
     private static final OkHttpClient HTTP = new OkHttpClient();
     private static final MediaType JSON = MediaType.parse("application/json");
@@ -29,6 +31,53 @@ public class ChatController {
     private WebSocket ws;
     private int roomId = -1;
     private long lastSeenTs = 0L;
+
+    @FXML
+    public void initialize() {
+        if (GlobalContainer.backgroundImageUrl != null) {
+            messagesList.setStyle(
+                    "-fx-background-image: url('" + GlobalContainer.backgroundImageUrl + "');" +
+                            "-fx-background-size: cover;" +
+                            "-fx-background-position: center center;" +
+                            "-fx-background-repeat: no-repeat;"
+            );
+        }
+    }
+
+
+    @FXML
+    public void openBio() {
+        try {
+            final String FXML_PATH = "/com/example/BuddyLink/View/user_info_popup.fxml";
+            java.net.URL url = java.util.Objects.requireNonNull(
+                    ChatController.class.getResource(FXML_PATH),
+                    "Cannot find " + FXML_PATH + " on classpath (put it in src/main/resources)"
+            );
+
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(url); // location set
+            javafx.scene.Parent root = loader.load();
+
+            // hand the selected user's id to the popup
+            UserInfoController ctrl = loader.getController();
+            ctrl.initForUserId(peer.id);
+
+            // show as modal popup
+            javafx.stage.Stage owner = (javafx.stage.Stage) bioBtn.getScene().getWindow();
+            javafx.stage.Stage dialog = new javafx.stage.Stage();
+            dialog.initOwner(owner);
+            dialog.initModality(javafx.stage.Modality.WINDOW_MODAL);
+            dialog.setTitle("About " + peer.name);
+            dialog.setScene(new javafx.scene.Scene(root));
+            dialog.show();
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            new Alert(Alert.AlertType.ERROR,
+                    "Failed to open profile popup: " + ex.getMessage()).showAndWait();
+        }
+    }
+
+
 
     public void init(UserLite peer) {
         this.peer = peer;

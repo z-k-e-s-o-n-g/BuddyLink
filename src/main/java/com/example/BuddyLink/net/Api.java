@@ -128,7 +128,6 @@ public class Api {
     // ---------------------------
     // Profile
     // ---------------------------
-    /** Update subjects/tags/onboarded using Session.token */
     public static void updateProfile(boolean[] subjects, java.util.List<String> tags, boolean onboarded) throws Exception {
         JsonObject body = new JsonObject();
 
@@ -153,7 +152,6 @@ public class Api {
         }
     }
 
-    /** Same as above but allow passing a specific token (useful in flows before Session.token is set) */
     public static void updateProfile(boolean[] subjects, java.util.List<String> tags, boolean onboarded, String tokenOverride) throws Exception {
         JsonObject body = new JsonObject();
 
@@ -178,7 +176,6 @@ public class Api {
         }
     }
 
-    /** Update bio (ServerMain exposes PUT /me/bio) */
     public static void updateBio(String bio) throws Exception {
         JsonObject body = new JsonObject();
         body.addProperty("bio", bio);

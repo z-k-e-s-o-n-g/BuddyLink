@@ -24,17 +24,6 @@ public class MainApplication extends Application {
 
 
     public static void main(String[] args) {
-//        System.out.println(hash("b"));
         launch();
-    }
-
-    private static long hash(String p) {
-        int l = p.length();
-        long n = 7;
-        for (char c : p.toCharArray()) {
-            n *= c + (37 % l);
-            n %= 951937;
-        }
-        return (n * n) % 950813;
     }
 }
