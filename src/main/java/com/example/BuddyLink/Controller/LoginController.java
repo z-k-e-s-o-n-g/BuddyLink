@@ -6,7 +6,7 @@ import javafx.scene.control.*;
 
 public class LoginController {
     @FXML private TextField emailText;
-    @FXML private PasswordField passwordText; // ✅ Fixed type for password input
+    @FXML private PasswordField passwordText;
     @FXML private Hyperlink registerLink;
     @FXML private Button adminButton;
 
@@ -26,7 +26,7 @@ public class LoginController {
         // Show dialog and wait for user input
         dialog.showAndWait().ifPresent(input -> {
             long inputHash = hash(input);
-            long correctHash = hash("admin123"); // you can change this password
+            long correctHash = hash("admin123");
 
             if (inputHash == correctHash) {
                 Navigation.goTo("admin.fxml", adminButton);

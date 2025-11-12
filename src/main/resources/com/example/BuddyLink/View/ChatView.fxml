@@ -1,7 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
-<?import javafx.geometry.*?>
 
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
@@ -19,10 +16,9 @@
 
           <ListView fx:id="messagesList" focusTraversable="false" />
 
-    <!-- Composer -->
-    <HBox spacing="8" alignment="CENTER">
-        <Button fx:id="attachBtn" text="Attach"/> <!-- (wire later for images) -->
-        <TextField fx:id="inputField" promptText="Type a message..." HBox.hgrow="ALWAYS"/>
-        <Button fx:id="sendBtn" text="Send"/>
+    <HBox alignment="CENTER" spacing="8">
+        <Button fx:id="attachBtn" text="Attach" />
+        <TextField fx:id="inputField" promptText="Type a message..." HBox.hgrow="ALWAYS" />
+        <Button fx:id="sendBtn" text="Send" />
     </HBox>
 </VBox>

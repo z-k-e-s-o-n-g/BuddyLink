@@ -17,12 +17,11 @@ public class BioController {
     public void submit() {
         String bio = textArea.getText() == null ? "" : textArea.getText().trim();
 
-        // Simple client-side guard (optional)
         if (bio.isEmpty()) {
             new Alert(Alert.AlertType.INFORMATION, "Please write a short bio.").showAndWait();
             return;
         }
-        if (bio.length() > 500) { // keep it reasonable
+        if (bio.length() > 500) {
             new Alert(Alert.AlertType.WARNING, "Bio is too long (max 500 characters).").showAndWait();
             return;
         }
@@ -31,7 +30,7 @@ public class BioController {
 
         new Thread(() -> {
             try {
-                // Api.updateBio must exist (see earlier snippet). It uses Session.token internally.
+                // Api.updateBio must exist, uses Session.token internally.
                 Api.updateBio(bio);
 
                 Platform.runLater(() -> {

@@ -1,50 +1,53 @@
-/* Role	Color	Hex Code	Description
-   Primary	Sky Blue	#3B82F6	Main color (buttons, headers)
-   Secondary	Soft Mint	#A7F3D0	Friendly accent for highlights
-   Accent	Coral Pink	#FCA5A5	For notifications, icons, or reaction badges
-   Background	Off-White	#F9FAFB	Gentle contrast to keep it light
-   Text	Dark Navy	#1E293B	For readability and balance
-*/
-
 AnchorPane {
-    -fx-background-color: #F2F5F7; /* Light gray background */
-    -fx-text-fill: #333333;            /* Dark gray text */
+    -fx-text-fill: #333333;
     -fx-font-family: 'Arial';
     -fx-background-image: url("images/lightbg.png");
     -fx-background-repeat: no-repeat;
 }
 
-/* Button {
-    -fx-background-color: #5897FC;
-    -fx-background-radius: 8;
-    -fx-text-fill: #FFFDD0;
+.AnchorPane {
+    -fx-background color: rgba(255, 255, 255, 0.3);
 }
-Button:hover {
-    -fx-background-color: #4078E0;
-} */
 
-Button {
-    -fx-background-color: rgba(59, 130, 246, 0.8); /* primary blue with slight transparency */
+Button, .choice-box {
+    -fx-background-color: rgba(59, 130, 246, 0.7);
     -fx-background-radius: 12;
     -fx-border-radius: 12;
-    -fx-border-color: rgba(59, 130, 246, 1); /* solid primary blue border */
+    -fx-border-color: rgba(59, 130, 246, 1);
     -fx-border-width: 1.5;
-    -fx-text-fill: white;                     /* text stays white for contrast */
+    -fx-text-fill: white;
     -fx-font-size: 14px;
     -fx-font-family: 'Arial';
-    -fx-padding: 5px 5px 5px 5px;                    /* more padding for light mode visibility */
+}
+
+Button {
+    -fx-padding: 5px 5px 5px 5px;
 }
 
 Button:hover {
-    -fx-background-color: rgba(59, 130, 246, 1); /* fully solid blue on hover */
+    -fx-background-color: rgba(59, 130, 246, 1);
 }
 
-TextField {
+.choice-box > .label {
+    -fx-text-fill: white;
+}
+
+/* dropdown list */
+.choice-box .context-menu {
+    -fx-background-color: rgba(59, 130, 246, 0.9);
+    -fx-background-radius: 8;
+}
+
+.choice-box .menu-item:focused {
+    -fx-background-color: rgba(37, 99, 235, 0.8);
+}
+
+TextField, TextArea {
     -fx-background-color: #E0F2FE;
     -fx-background-radius: 8;
     -fx-border-radius: 8;
     -fx-border-color: #CBD5E1;
-    -fx-padding: 3px 5px 3px 5px
+    -fx-padding: 3px 5px 3px 5px;
 }
 
 ListView {

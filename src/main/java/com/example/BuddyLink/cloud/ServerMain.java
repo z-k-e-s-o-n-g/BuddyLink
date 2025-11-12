@@ -14,13 +14,45 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 
 public class ServerMain {
+    static String publicBaseUrlOverride() {
+        String v = System.getenv("PUBLIC_BASE_URL");
+        return (v != null && !v.isBlank()) ? v.replaceAll("/+$", "") : null;
+    }
+    static class Message {
+        int userId; String text; long ts;
+        String fileUrl; String mime; // NEW
+        Message(int u, String t){userId=u;text=t;ts=System.currentTimeMillis();}
+        Message(int u, String t, String fileUrl, String mime){
+            userId=u; text=t; this.fileUrl=fileUrl; this.mime=mime; ts=System.currentTimeMillis();
+        }
+    }
 
-    static class Message { int userId; String text; long ts; Message(int u,String t){userId=u;text=t;ts=System.currentTimeMillis();} }
     static class Room { int id; Set<Integer> members = new HashSet<>(); List<Message> messages = new ArrayList<>(); }
+    static String BASE_URL;
 
     static final Map<Integer, Room> rooms = new ConcurrentHashMap<>();
     static final Map<Integer, CopyOnWriteArraySet<WsContext>> sockets = new ConcurrentHashMap<>();
     static final Map<String, Integer> tokenToUser = new ConcurrentHashMap<>();
+
+    static final Map<String, Integer> pairToRoom = new ConcurrentHashMap<>();
+    // --- Presence tracking ---
+    static final Map<Integer, Long> lastSeen = new ConcurrentHashMap<>();
+
+    static void touch(int uid) {
+        lastSeen.put(uid, System.currentTimeMillis());
+    }
+
+    static boolean isActive(int uid) {
+        Long t = lastSeen.get(uid);
+        return t != null && System.currentTimeMillis() - t < 30_000;
+    }
+
+
+    // stable key for a user pair (order-independent)
+    static String pairKey(int a, int b) {
+        return (a < b) ? (a + ":" + b) : (b + ":" + a);
+    }
+
     static int roomSeq = 1;
 
     static final Gson GSON = new Gson();
@@ -50,6 +82,8 @@ public class ServerMain {
         catch (Exception e) { e.printStackTrace(); throw new RuntimeException(e); }
 
         Javalin app = Javalin.create(c -> {
+
+            // static files served
             c.jsonMapper(new JsonMapper() {
                 public String toJsonString(Object obj) { return GSON.toJson(obj); }
                 public String toJsonString(Object obj, Type type) { return GSON.toJson(obj, type); }
@@ -59,7 +93,13 @@ public class ServerMain {
             c.jetty.defaultHost = "0.0.0.0";
             c.bundledPlugins.enableCors(cors -> cors.addRule(rule -> rule.anyHost()));
         }).start(port);
-        String baseUrl = detectBaseUrl(port);
+        app.before(ctx -> System.out.println("[TRACE] " + ctx.method() + " " + ctx.path()));
+        BASE_URL = Optional.ofNullable(publicBaseUrlOverride()).orElseGet(() -> detectBaseUrl(port));
+        String baseUrl = BASE_URL; // keep your logging the same
+        System.out.println("🌐 BuddyLink server accessible at: " + baseUrl);
+
+
+
         System.out.println("🌐 BuddyLink server accessible at: " + baseUrl);
 
         app.exception(Exception.class, (e, ctx) -> {
@@ -68,6 +108,50 @@ public class ServerMain {
         });
 
         app.get("/", ctx -> ctx.result("BuddyLink server running."));
+
+        app.get("/uploads/{path...}", ctx -> {
+            String rest = ctx.pathParam("path...");
+            if (rest == null || rest.isBlank()) {
+                ctx.status(404);
+                return;
+            }
+
+            java.nio.file.Path base = java.nio.file.Paths.get("uploads");
+            java.nio.file.Path p = base.resolve(rest).normalize();
+
+            // prevent path-traversal outside uploads/
+            if (!p.startsWith(base)) {
+                ctx.status(403).result("Forbidden");
+                return;
+            }
+
+            if (!java.nio.file.Files.exists(p) || java.nio.file.Files.isDirectory(p)) {
+                ctx.status(404).result("Not found");
+                return;
+            }
+
+            String mime = java.nio.file.Files.probeContentType(p);
+            if (mime == null) mime = "application/octet-stream";
+            ctx.contentType(mime);
+            ctx.result(java.nio.file.Files.newInputStream(p));
+        });
+
+        app.head("/uploads/{path...}", ctx -> {
+            String rest = ctx.pathParam("path...");
+            java.nio.file.Path base = java.nio.file.Paths.get("uploads");
+            java.nio.file.Path p = base.resolve(rest == null ? "" : rest).normalize();
+
+            if (!p.startsWith(base) || !java.nio.file.Files.exists(p) || java.nio.file.Files.isDirectory(p)) {
+                ctx.status(404);
+                return;
+            }
+
+            String mime = java.nio.file.Files.probeContentType(p);
+            if (mime == null) mime = "application/octet-stream";
+            ctx.contentType(mime);
+            ctx.header("Content-Length", String.valueOf(java.nio.file.Files.size(p)));
+            ctx.status(200);
+        });
 
         // ---------- AUTH / USERS ----------
         app.post("/auth/register", ctx -> {
@@ -96,6 +180,7 @@ public class ServerMain {
             String token = UUID.randomUUID().toString();
             tokenToUser.put(token, id);
 
+            // mark user active on successful login
             try (ResultSet rs = findUserById(id)) {
                 if (!rs.next()) { ctx.status(500).result("Created user not found"); return; }
                 var out = new HashMap<>(rowToUserMap(rs));
@@ -104,7 +189,7 @@ public class ServerMain {
             }
         });
 
-        // ---------- LOGIN (fixed version) ----------
+        // ---------- LOGIN ----------
         app.post("/auth/login", ctx -> {
             JsonObject j = JsonParser.parseString(ctx.body()).getAsJsonObject();
 
@@ -164,6 +249,7 @@ public class ServerMain {
             ctx.status(204);
         });
 
+
         app.put("/me/bio", ctx -> {
             var me = auth(ctx.header("Authorization"));
             JsonObject j = JsonParser.parseString(ctx.body()).getAsJsonObject();
@@ -177,6 +263,60 @@ public class ServerMain {
             }
             ctx.status(204);
         });
+        // --- upload test ---
+        app.get("/rooms/{rid}/files/ping", ctx -> {
+            int rid = Integer.parseInt(ctx.pathParam("rid"));
+            ctx.result("files route OK for room " + rid);
+        });
+
+// --- main upload route ---
+        app.post("/rooms/{rid}/files", ctx -> {
+            System.out.println("➡️  POST /rooms/" + ctx.pathParam("rid") + "/files (hit)");
+            var me = auth(ctx.header("Authorization"));
+            int rid = Integer.parseInt(ctx.pathParam("rid"));
+            Room r = roomOr404(rid); requireMember(r, me.id());
+
+            var up = ctx.uploadedFile("file");
+            if (up == null) { ctx.status(400).result("Missing form field 'file'"); return; }
+
+            String mime = java.util.Optional.ofNullable(up.contentType()).orElse("application/octet-stream");
+            long maxBytes = 25L * 1024 * 1024;
+            if (up.size() > maxBytes) { ctx.status(413).result("File too large"); return; }
+
+            java.nio.file.Path dir = java.nio.file.Paths.get("uploads");
+            java.nio.file.Files.createDirectories(dir);
+
+            String stored = rid + "-" + java.util.UUID.randomUUID() + "-" + safeName(up.filename());
+            java.nio.file.Path dest = dir.resolve(stored);
+
+            try (var in = up.content()) {
+                java.nio.file.Files.copy(in, dest, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            }
+
+            String publicPath = BASE_URL + "/uploads/" + stored;
+
+            Message m = new Message(me.id(), null, publicPath, mime);
+            r.messages.add(m);
+            saveMessage(rid, m);
+
+            var payload = new java.util.HashMap<String, Object>();
+            payload.put("type", "chat");
+            payload.put("userId", me.id());
+            payload.put("text", null);
+            payload.put("imageUrl", publicPath);
+            payload.put("mime", mime);
+            payload.put("ts", m.ts);
+            broadcast(rid, GSON.toJson(payload));
+
+            ctx.json(java.util.Map.of("fileUrl", publicPath, "mime", mime, "ts", m.ts));
+        });
+
+        // --- trailing-slash twin ---
+        app.post("/rooms/{rid}/files/", ctx -> {
+            ctx.status(308).header("Location",
+                    "/rooms/" + ctx.pathParam("rid") + "/files").result("Use /rooms/{rid}/files");
+        });
+
 
         // ---------- USERS ----------
         app.get("/users", ctx -> {
@@ -186,73 +326,149 @@ public class ServerMain {
                     "SELECT id, name, email, onboarded FROM users ORDER BY id ASC");
                  ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
+                    int id = rs.getInt("id");
                     list.add(Map.of(
-                            "id", rs.getInt("id"),
+                            "id", id,
                             "name", rs.getString("name"),
                             "email", rs.getString("email"),
-                            "onboarded", rs.getInt("onboarded") == 1
+                            "onboarded", rs.getInt("onboarded") == 1,
+                            "status", isActive(id) ? "online" : "inactive"
                     ));
                 }
             }
             ctx.json(list);
         });
 
+        app.get("/users/{id}", ctx -> {
+            var me = auth(ctx.header("Authorization"));
+            int id = Integer.parseInt(ctx.pathParam("id"));
+            try (ResultSet rs = findUserById(id)) {
+                if (rs == null || !rs.next()) throw new io.javalin.http.NotFoundResponse();
+                ctx.json(rowToUserMap(rs));
+            } catch (Exception e) {
+                e.printStackTrace();
+                ctx.status(500).result("Server error: " + e.getMessage());
+            }
+        });
+
+
+
         // ---------- CHAT ----------
         app.post("/rooms", ctx -> {
             var me = auth(ctx.header("Authorization"));
             int peerId = JsonParser.parseString(ctx.body()).getAsJsonObject().get("peerId").getAsInt();
-            Room r = new Room(); r.id = roomSeq++; r.members.add(me.id); r.members.add(peerId);
-            rooms.put(r.id, r);
+
+            if (peerId == me.id()) {
+                ctx.status(400).result("peerId cannot equal your own id");
+                return;
+            }
+
+            String key = pairKey(me.id(), peerId);
+            Integer existing = pairToRoom.get(key);
+            Room r;
+
+            if (existing != null && rooms.containsKey(existing)) {
+                r = rooms.get(existing);
+                r.members.add(me.id());
+                r.members.add(peerId);
+                System.out.println("🔁 /rooms reuse key=" + key + " -> rid=" + r.id + " members=" + r.members);
+            } else {
+                r = new Room();
+                r.id = roomSeq++;
+                r.members.add(me.id());
+                r.members.add(peerId);
+                rooms.put(r.id, r);
+                pairToRoom.put(key, r.id);
+                System.out.println("🆕 /rooms create key=" + key + " -> rid=" + r.id + " members=" + r.members);
+            }
+
             ctx.json(Map.of("roomId", r.id, "members", r.members));
         });
 
+        // text message route
         app.post("/rooms/{rid}/messages", ctx -> {
             var me = auth(ctx.header("Authorization"));
+            touch(me.id());
             int rid = Integer.parseInt(ctx.pathParam("rid"));
-            Room r = roomOr404(rid); requireMember(r, me.id);
+            Room r = roomOr404(rid); requireMember(r, me.id());
             String text = JsonParser.parseString(ctx.body()).getAsJsonObject().get("text").getAsString();
-            Message m = new Message(me.id, text);
+            Message m = new Message(me.id(), text);
             r.messages.add(m);
-            broadcast(rid, GSON.toJson(Map.of("type", "chat", "userId", me.id, "text", text, "ts", m.ts)));
+            saveMessage(rid, m);
+            broadcast(rid, GSON.toJson(Map.of("type", "chat", "userId", me.id(), "text", text, "ts", m.ts)));
             ctx.status(204);
+
         });
+
 
         app.get("/rooms/{rid}/messages", ctx -> {
             var me = auth(ctx.header("Authorization"));
+            touch(me.id());
             int rid = Integer.parseInt(ctx.pathParam("rid"));
-            String sinceStr = Optional.ofNullable(ctx.queryParam("since")).orElse("0");
-            long since = Long.parseLong(sinceStr);
-            Room r = roomOr404(rid); requireMember(r, me.id);
+            long since = Long.parseLong(java.util.Optional.ofNullable(ctx.queryParam("since")).orElse("0"));
+            Room r = roomOr404(rid); requireMember(r, me.id());
+
+            if (r.messages.isEmpty()) loadMessages(rid, r);
+
             var out = new ArrayList<Map<String, Object>>();
-            for (Message m : r.messages) if (m.ts > since)
-                out.add(Map.of("userId", m.userId, "text", m.text, "ts", m.ts));
+            for (Message m : r.messages) if (m.ts > since) {
+                var item = new java.util.HashMap<String, Object>();
+                item.put("userId", m.userId);
+                item.put("text", m.text);
+                item.put("imageUrl", m.fileUrl);
+                item.put("mime", m.mime);
+                item.put("ts", m.ts);
+                out.add(item);
+            }
             ctx.json(out);
         });
 
+
+        // WebSocket
         app.ws("/ws/rooms/{rid}", ws -> {
             ws.onConnect(ctx -> {
                 var me = authToken(ctx.queryParam("token"));
+                touch(me.id());
                 int rid = Integer.parseInt(ctx.pathParam("rid"));
-                Room r = roomOr404(rid); requireMember(r, me.id);
-                ctx.attribute("userId", me.id);
+
+                try {
+                    var ra = ctx.session.getRemoteAddress(); // jetty InetSocketAddress
+                    System.out.println("🔌 WS CONNECT uid=" + me.id() + " rid=" + rid +
+                            " from " + (ra != null ? ra.toString() : "<unknown>"));
+                } catch (Exception ignore) {
+                    System.out.println("🔌 WS CONNECT uid=" + me.id() + " rid=" + rid);
+                }
+
+                Room r = roomOr404(rid);
+                requireMember(r, me.id());
+                ctx.attribute("userId", me.id());
                 sockets.computeIfAbsent(rid, k -> new CopyOnWriteArraySet<>()).add(ctx);
-                broadcast(rid, GSON.toJson(Map.of("type", "presence", "event", "join", "userId", me.id)));
+                broadcast(rid, GSON.toJson(Map.of("type", "presence", "event", "join", "userId", me.id())));
             });
+
             ws.onMessage(ctx -> {
                 int rid = Integer.parseInt(ctx.pathParam("rid"));
                 Integer uid = ctx.attribute("userId");
+                touch(uid);
                 var j = JsonParser.parseString(ctx.message()).getAsJsonObject();
                 if ("chat".equals(j.get("type").getAsString())) {
                     String text = j.get("text").getAsString();
                     rooms.get(rid).messages.add(new Message(uid, text));
+                    System.out.println("💬 WS MSG uid=" + uid + " rid=" + rid + " text=" + text);
                     broadcast(rid, GSON.toJson(Map.of("type", "chat", "userId", uid, "text", text, "ts", System.currentTimeMillis())));
                 }
             });
+
             ws.onClose(ctx -> {
                 int rid = Integer.parseInt(ctx.pathParam("rid"));
                 Integer uid = ctx.attribute("userId");
+                System.out.println("❌ WS CLOSE uid=" + uid + " rid=" + rid);
                 sockets.getOrDefault(rid, new CopyOnWriteArraySet<>()).remove(ctx);
                 broadcast(rid, GSON.toJson(Map.of("type", "presence", "event", "leave", "userId", uid)));
+            });
+
+            ws.onError(ctx -> {
+                System.out.println("⚠️ WS ERROR rid=" + ctx.pathParam("rid") + " err=" + ctx.error());
             });
         });
 
@@ -308,6 +524,26 @@ public class ServerMain {
             ctx.status(204);
         });
 
+        // ---------- PRESENCE ----------
+        app.get("/presence/{uid}", ctx -> {
+            int uid = Integer.parseInt(ctx.pathParam("uid"));
+            boolean active = isActive(uid);
+            ctx.json(Map.of(
+                    "userId", uid,
+                    "status", active ? "online" : "inactive"
+            ));
+        });
+        // ===== PRESENCE =====
+
+        app.post("/presence/ping", ctx -> {
+            var me = auth(ctx.header("Authorization"));
+            touch(me.id());
+            ctx.status(204);
+        });
+
+
+
+
         System.out.println("Admin routes mounted.");
     }
 
@@ -347,6 +583,18 @@ public class ServerMain {
                     updated_at INTEGER
                 );
             """);
+            st.execute("""
+    CREATE TABLE IF NOT EXISTS messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        room_id INTEGER,
+        user_id INTEGER,
+        text TEXT,
+        file_url TEXT,
+        mime TEXT,
+        ts INTEGER
+    );
+""");
+
             st.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);");
         }
     }
@@ -438,6 +686,14 @@ public class ServerMain {
         );
     }
 
+    // ===== NEW: safe filename helper
+    static String safeName(String s) {
+        if (s == null) return "file";
+        s = s.replace("\\", "/");
+        s = s.substring(s.lastIndexOf('/') + 1);
+        return s.replaceAll("[^A-Za-z0-9._-]", "_");
+    }
+
     static String optString(JsonObject j, String key) {
         return (j.has(key) && !j.get(key).isJsonNull()) ? j.get(key).getAsString() : null;
     }
@@ -461,6 +717,53 @@ public class ServerMain {
     }
     static void requireMember(Room r, int uid) { if (!r.members.contains(uid)) throw new UnauthorizedResponse(); }
     static void broadcast(int rid, String json) {
-        sockets.getOrDefault(rid, new CopyOnWriteArraySet<>()).forEach(ws -> ws.send(json));
+        var set = sockets.getOrDefault(rid, new CopyOnWriteArraySet<>());
+        int ok = 0, fail = 0;
+        for (var ws : set) {
+            try {
+                ws.send(json);
+                ok++;
+            } catch (Exception e) {
+                fail++;
+            }
+        }
+        System.out.println("📡 WS BROADCAST rid=" + rid + " sent=" + ok + " fail=" + fail);
     }
+    // === CHAT PERSISTENCE HELPERS ===
+    static void saveMessage(int rid, Message m) {
+        try (PreparedStatement ps = db.prepareStatement(
+                "INSERT INTO messages(room_id, user_id, text, file_url, mime, ts) VALUES(?,?,?,?,?,?)")) {
+            ps.setInt(1, rid);
+            ps.setInt(2, m.userId);
+            ps.setString(3, m.text);
+            ps.setString(4, m.fileUrl);
+            ps.setString(5, m.mime);
+            ps.setLong(6, m.ts);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    static void loadMessages(int rid, Room r) {
+        try (PreparedStatement ps = db.prepareStatement(
+                "SELECT user_id, text, file_url, mime, ts FROM messages WHERE room_id=? ORDER BY ts ASC")) {
+            ps.setInt(1, rid);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Message m = new Message(
+                            rs.getInt("user_id"),
+                            rs.getString("text"),
+                            rs.getString("file_url"),
+                            rs.getString("mime")
+                    );
+                    m.ts = rs.getLong("ts");
+                    r.messages.add(m);
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
 }

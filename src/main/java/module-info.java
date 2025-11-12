@@ -5,12 +5,11 @@ module com.example.BuddyLink {
     requires com.google.gson;
     requires okhttp3;
     requires java.sql;
+    requires java.desktop;
 
-    // FXML
     opens com.example.BuddyLink to javafx.fxml;
     opens com.example.BuddyLink.Controller to javafx.fxml;
 
-    // ✅ Let Gson reflect on Api.LoginResp and other network models
     opens com.example.BuddyLink.net to com.google.gson;
 
     exports com.example.BuddyLink;

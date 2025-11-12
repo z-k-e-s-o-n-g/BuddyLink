@@ -30,7 +30,7 @@ import java.util.List;
 
 public class MainController {
 
-    @FXML private Button settingsButton;
+    @FXML private Button settingsButton, studyButton;
     @FXML private TextField searchBar;
     @FXML private ListView<UserLite> chatList;
     @FXML private AnchorPane chatContainer;
@@ -180,7 +180,7 @@ public class MainController {
 
     @FXML
     public void study() {
-        // Placeholder
+        Navigation.goTo("time_input.fxml", studyButton);
     }
 
     @FXML
@@ -199,4 +199,5 @@ public class MainController {
         public UserLite(int id, String name) { this.id = id; this.name = name; }
         @Override public String toString() { return name; }
     }
+
 }

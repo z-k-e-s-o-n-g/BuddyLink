@@ -1,0 +1,17 @@
+.list-view,
+.list-view .virtual-flow,
+.list-view .clipped-container,
+.list-view .sheet {
+  -fx-background-color: transparent;
+}
+
+.list-view .list-cell {
+  -fx-background-color: transparent;
+  -fx-background-insets: 0;
+  -fx-border-width: 0;
+}
+
+* {
+  -fx-control-inner-background: transparent;
+  -fx-control-inner-background-alt: transparent;
+}

@@ -1,5 +1,6 @@
 package com.example.BuddyLink.Controller;
 
+import com.example.BuddyLink.Model.User;
 import com.example.BuddyLink.Navigation;
 import com.google.gson.*;
 import javafx.application.Platform;
@@ -14,7 +15,7 @@ import java.util.List;
 
 public class AdminController {
 
-    // --- UI (Scene Builder: wire these fx:id’s) ---
+    // --- UI (Scene Builder: wire fx:id) ---
     @FXML private TableView<UserRow> usersTable;
     @FXML private TableColumn<UserRow, Integer> colId;
     @FXML private TableColumn<UserRow, String>  colName;
@@ -26,8 +27,8 @@ public class AdminController {
     @FXML private Button closeBtn;
 
     // --- HTTP/JSON ---
-    private static final String BASE = "http://localhost:7070";
-    private static final String ADMIN_TOKEN = "dev-admin"; // match ServerMain.ADMIN_TOKEN
+    private static final String BASE = "http://localhost:7070"; // adjust if needed
+    private static final String ADMIN_TOKEN = "dev-admin";      // must match ServerMain.ADMIN_TOKEN
     private static final OkHttpClient http = new OkHttpClient();
     private static final Gson G = new Gson();
 
@@ -48,7 +49,7 @@ public class AdminController {
         loadUsersAsync();
     }
 
-    // --- Actions wired from buttons ---
+    // --- Button actions ---
     @FXML
     public void refresh() { loadUsersAsync(); }
 
@@ -76,33 +77,99 @@ public class AdminController {
         }).start();
     }
 
+    /**
+     * Reset EVERYTHING: first clear all conversations (rooms/messages),
+     * then clear all users (existing behavior).
+     */
     @FXML
     public void resetAll() {
-        if (!confirm("This will delete ALL users. Continue?")) return;
+        if (!confirm("This will delete ALL users and ALL conversation history. Continue?")) return;
+
+        setButtonsDisabled(true);
+
         new Thread(() -> {
-            Request req = new Request.Builder()
-                    .url(BASE + "/admin/reset")
-                    .post(RequestBody.create(new byte[0], null))
-                    .addHeader("X-Admin", ADMIN_TOKEN)
-                    .build();
-            try (Response r = http.newCall(req).execute()) {
-                if (!r.isSuccessful()) {
-                    uiAlert("Reset failed: " + r.code() + " - " + bodySafe(r));
-                    return;
-                }
-                uiInfo("All users cleared.");
-                loadUsersAsync();
-            } catch (IOException e) {
-                uiAlert("Reset failed: " + e.getMessage());
+            int chatEndpointsHit = clearAllChatsInternal(); // try multiple endpoints, count successes
+
+            // Now call your existing users reset endpoint
+            boolean usersCleared = postNoBody("/admin/reset");
+
+            StringBuilder sb = new StringBuilder();
+            if (chatEndpointsHit > 0) {
+                sb.append("Chats cleared (").append(chatEndpointsHit).append(" op").append(chatEndpointsHit>1?"s":"").append("). ");
+            } else {
+                sb.append("No chat-clear endpoint responded 2xx. ");
             }
+            sb.append(usersCleared ? "Users cleared." : "Users clear FAILED.");
+
+            if (usersCleared) {
+                uiInfo(sb.toString());
+                loadUsersAsync();
+            } else {
+                uiAlert(sb.toString());
+                setButtonsDisabled(false);
+            }
+        }).start();
+        User.resetTotalUsers();
+    }
+
+    /**
+     * Optional: if you later add a separate "Clear Chats" button, wire it to this.
+     * Safe to leave unused.
+     */
+    @FXML
+    public void clearAllChatsOnly() {
+        if (!confirm("This will delete ALL conversation history. Continue?")) return;
+
+        setButtonsDisabled(true);
+        new Thread(() -> {
+            int count = clearAllChatsInternal();
+            if (count > 0) {
+                uiInfo("Chats cleared (" + count + " op" + (count>1?"s":"") + ").");
+            } else {
+                uiAlert("No chat-clear endpoint responded 2xx.");
+            }
+            setButtonsDisabled(false);
         }).start();
     }
 
     // --- Internals ---
+
+    /**
+     * Try a few likely admin endpoints for clearing chats.
+     * Returns how many endpoints returned 2xx.
+     */
+    private int clearAllChatsInternal() {
+        int ok = 0;
+        // Add/adjust to match your server. We'll try all; non-existent will just 404.
+        String[] endpoints = new String[] {
+                "/admin/chats/reset",
+                "/admin/messages/reset",
+                "/admin/rooms/reset",
+                "/admin/conversations/reset"
+        };
+        for (String ep : endpoints) {
+            if (postNoBody(ep)) ok++;
+        }
+        return ok;
+    }
+
+    /** POST with no body, admin header; returns true if 2xx. */
+    private boolean postNoBody(String path) {
+        Request req = new Request.Builder()
+                .url(BASE + path)
+                .post(RequestBody.create(new byte[0], null))
+                .addHeader("X-Admin", ADMIN_TOKEN)
+                .build();
+        try (Response r = http.newCall(req).execute()) {
+            return r.isSuccessful();
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
     private void loadUsersAsync() {
-        // disable while loading
-        setButtonsDisabled(true);
         new Thread(() -> {
+            setButtonsDisabled(true);
             Request req = new Request.Builder()
                     .url(BASE + "/admin/users")
                     .get()
@@ -121,8 +188,8 @@ public class AdminController {
                 for (var el : arr) {
                     JsonObject o = el.getAsJsonObject();
                     int id = o.get("id").getAsInt();
-                    String name = o.get("name").getAsString();
-                    String email = o.get("email").getAsString();
+                    String name = o.get("name").isJsonNull() ? "" : o.get("name").getAsString();
+                    String email = o.get("email").isJsonNull() ? "" : o.get("email").getAsString();
                     boolean onboarded = o.get("onboarded").getAsBoolean();
                     rows.add(new UserRow(id, name, email, onboarded));
                 }
@@ -163,4 +230,25 @@ public class AdminController {
     }
     private void uiAlert(String msg) { Platform.runLater(() -> alert(msg)); }
     private void uiInfo(String msg)  { Platform.runLater(() -> info(msg)); }
+
+    // --- Table row model (make sure you have getters for PropertyValueFactory) ---
+    public static class UserRow {
+        private final int id;
+        private final String name;
+        private final String email;
+        private final boolean onboarded;
+
+        public UserRow(int id, String name, String email, boolean onboarded) {
+            this.id = id;
+            this.name = name;
+            this.email = email;
+            this.onboarded = onboarded;
+        }
+        public int getId() { return id; }
+        public String getName() { return name; }
+        public String getEmail() { return email; }
+        public boolean isOnboarded() { return onboarded; }
+        // If your column uses Boolean instead of boolean, add this:
+        public Boolean getOnboarded() { return onboarded; }
+    }
 }

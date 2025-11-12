@@ -12,6 +12,11 @@ public class User {
     private List<String> tags;
     private boolean onboarded;           // finished onboarding?
     private long createdAt;
+
+    public static void resetTotalUsers() {
+        User.totalUsers = 0;
+    }
+
     private long updatedAt;
     private static int totalUsers = 0;
     private String bio;

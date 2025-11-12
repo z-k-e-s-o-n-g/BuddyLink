@@ -6,15 +6,12 @@ import okhttp3.*;
 
 public class Api {
 
-    // Expose http because some controllers import it statically
     public static final OkHttpClient http = new OkHttpClient();
     private static final Gson gson = new Gson();
     private static final MediaType JSON = MediaType.parse("application/json");
 
-    // Portable base URL (override with env BUDDYLINK_API, else localhost)
     public static String BASE = System.getenv().getOrDefault("BUDDYLINK_API", "http://localhost:7070");
 
-    /** Build ws:// or wss:// URL from BASE */
     public static String getWsUrl(String pathAndQuery) {
         String scheme = BASE.startsWith("https") ? "wss" : "ws";
         String host = BASE.replaceFirst("^https?://", ""); // e.g. localhost:7070 or api.domain.tld
@@ -44,9 +41,9 @@ public class Api {
                 .build();
 
         try (Response r = http.newCall(req).execute()) {
-            String respBody = (r.body() != null) ? r.body().string() : null; // read ONCE
+            String respBody = (r.body() != null) ? r.body().string() : null;
 
-            // Optional debug
+
             System.out.println("🟡 [CLIENT] POST " + BASE + "/auth/login -> " + r.code()
                     + (respBody != null ? (" | body: " + respBody) : " | <no body>"));
 
